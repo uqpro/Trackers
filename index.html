@@ -58,7 +58,6 @@
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(51, 65, 85, 0.7);
     }
-    /* Custom Leaflet Controls Styling */
     .leaflet-control-layers {
       background: rgba(15, 23, 42, 0.9) !important;
       color: #e2e8f0 !important;
@@ -70,7 +69,6 @@
     .leaflet-control-layers-toggle {
       filter: invert(1);
     }
-    /* Pulsing user GPS Marker */
     .gps-pulse-marker {
       background: #10b981;
       border: 3px solid #ffffff;
@@ -124,7 +122,7 @@
   <main class="relative flex-1 w-full bg-slate-950">
     <div id="map"></div>
 
-    <!-- HUD Dynamic Stats Bar (Top Floating) -->
+    <!-- HUD Dynamic Stats Bar -->
     <div class="absolute top-3 left-3 right-3 z-[400] flex justify-between items-start pointer-events-none gap-2">
       <div class="glass-panel p-2.5 rounded-2xl pointer-events-auto text-xs shadow-xl flex-1 max-w-xs grid grid-cols-2 gap-2 text-slate-200">
         <div>
@@ -143,7 +141,7 @@
         </div>
       </div>
 
-      <!-- Tombol Re-Center GPS Melayang -->
+      <!-- Tombol Re-Center GPS -->
       <button id="btnReCenter" onclick="reCenterGPS()" class="pointer-events-auto w-12 h-12 glass-panel rounded-2xl text-teal-400 hover:text-emerald-300 active:scale-95 border border-teal-500/40 flex items-center justify-center text-lg shadow-2xl transition-all duration-200 group" title="Re-Center Ke Lokasi Saya">
         <i class="fa-solid fa-crosshairs group-hover:rotate-45 transition-transform duration-300"></i>
       </button>
@@ -181,7 +179,6 @@
     <button onclick="openModal('syncModal')" class="flex flex-col items-center gap-1 hover:text-slate-200 transition">
       <i class="fa-solid fa-cloud-arrow-up text-base text-cyan-400"></i> Sync Sheets
     </button>
-    <!-- Menu Backend Code.gs (Khusus Admin) -->
     <button id="navCodeGs" onclick="openModal('codeGsModal')" class="hidden flex flex-col items-center gap-1 hover:text-slate-200 transition">
       <i class="fa-solid fa-code text-base text-violet-400"></i> Backend Code.gs
     </button>
@@ -229,8 +226,8 @@
       <div class="space-y-3 text-xs">
         <div>
           <label class="block text-slate-400 mb-1 font-medium">Google Apps Script Web App URL</label>
-          <input type="url" id="gasApiUrl" placeholder="https://script.google.com/macros/s/AKfycbwFvhlO2xHUdRqWld3_iz6dsRVWNFmIsWkzm_2QmNNWYJv-pCRaYAI_LnmAILMq_a36Pg/exec" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:border-teal-500 focus:outline-none">
-          <p class="text-[10px] text-slate-500 mt-1">Digunakan untuk melakukan sinkronisasi log trek & data pos ke Google Sheets.</p>
+          <input type="url" id="gasApiUrl" placeholder="https://script.google.com/macros/s/AKfycbyoCFHxcE2v75F0yqSC4Y38FT-rau4s7BOEClED90yvw33q-UxacSjJueH9j6TdH54x0A/exec" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:border-teal-500 focus:outline-none">
+          <p class="text-[10px] text-slate-500 mt-1">Digunakan untuk verifikasi akun & sinkronisasi data ke Google Sheets.</p>
         </div>
 
         <div>
@@ -352,61 +349,7 @@
       <p class="text-[11px] text-slate-400">Salin skrip Google Apps Script berikut ke Apps Script Editor Google Sheet Anda:</p>
 
       <div class="relative flex-1 overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
-        <textarea readonly id="codeGsArea" class="w-full h-full p-3 font-mono text-[11px] text-emerald-400 bg-transparent resize-none focus:outline-none">
-/**
- * MOUNTAIN TRACKER - BACKEND ENGINE (Code.gs)
- */
-function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({ status: "online", app: "Mountain Tracker API" }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  const lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(10000);
-    const data = JSON.parse(e.postData.contents);
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    if (data.action === "setup") {
-      return setupDatabase();
-    } else if (data.action === "login") {
-      return handleLogin(data.payload);
-    } else if (data.action === "syncTrek") {
-      let sheet = ss.getSheetByName("Trek_Logs") || ss.insertSheet("Trek_Logs");
-      if (sheet.getLastRow() === 0) {
-        sheet.appendRow(["Trek_ID", "Device_ID", "Jarak_KM", "Titik_Count", "Koordinat_JSON", "Waktu_Simpan"]);
-      }
-      sheet.appendRow(["TRK-" + Date.now(), data.deviceId, data.distance, data.points.length, JSON.stringify(data.points), new Date()]);
-      return responseJSON({ status: "success", message: "Data Trek Berhasil Disimpan!" });
-    }
-  } catch (err) {
-    return responseJSON({ status: "error", message: err.toString() });
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function setupDatabase() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const scriptProperties = PropertiesService.getScriptProperties();
-
-  if (!scriptProperties.getProperty('ADMIN_USERNAME')) scriptProperties.setProperty('ADMIN_USERNAME', 'admin');
-  if (!scriptProperties.getProperty('ADMIN_PASSWORD')) scriptProperties.setProperty('ADMIN_PASSWORD', '123456');
-
-  let sheetTrek = ss.getSheetByName("Trek_Logs") || ss.insertSheet("Trek_Logs");
-  sheetTrek.getRange("A1:F1").setValues([["Trek_ID", "Device_ID", "Jarak_KM", "Titik_Count", "Koordinat_JSON", "Waktu_Simpan"]]).setFontWeight("bold").setBackground("#065f46").setFontColor("#ffffff");
-
-  let sheetWp = ss.getSheetByName("Waypoints") || ss.insertSheet("Waypoints");
-  sheetWp.getRange("A1:F1").setValues([["WP_ID", "Nama_Pos", "Kategori", "Elevasi", "Lat", "Lng"]]).setFontWeight("bold").setBackground("#065f46").setFontColor("#ffffff");
-
-  return responseJSON({ status: "success", message: "Database Google Sheet Berhasil Diinisialisasi!" });
-}
-
-function responseJSON(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
-}
-        </textarea>
+        <textarea readonly id="codeGsArea" class="w-full h-full p-3 font-mono text-[11px] text-emerald-400 bg-transparent resize-none focus:outline-none"></textarea>
       </div>
 
       <div class="flex justify-end gap-2 pt-2">
@@ -418,7 +361,6 @@ function responseJSON(obj) {
   </div>
 
   <script>
-    // System & Map State Variables
     let map, userMarker, trackPolyline;
     let watchId = null;
     let currentLatLng = null;
@@ -428,7 +370,6 @@ function responseJSON(obj) {
     let totalDistanceKM = 0;
     let imageOverlayObj = null;
 
-    // Default Location: Gunung Arjuno-Welirang Base
     const defaultCenter = [-7.768, 112.583];
 
     window.onload = function() {
@@ -438,37 +379,47 @@ function responseJSON(obj) {
       registerServiceWorker();
     };
 
-    // --- FITUR AKSES ADMIN ---
+    // --- PERBAIKAN LOGIN ADMIN ---
     async function handleAdminLogin(e) {
       e.preventDefault();
       const user = document.getElementById('adminUser').value.trim();
       const pass = document.getElementById('adminPass').value.trim();
       const gasUrl = localStorage.getItem('MTN_GAS_URL');
 
-      Swal.fire({ title: 'Memeriksa Akses...', didOpen: () => Swal.showLoading() });
-
-      // Verifikasi online via Apps Script backend Script Properties
-      if (gasUrl) {
-        try {
-          const res = await fetch(gasUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'login', payload: { username: user, pin: pass } })
-          });
-        } catch (e) {
-          console.log('Online verification error, fall back to offline verification');
-        }
+      if (!gasUrl) {
+        Swal.fire('URL Web App Belum Diset', 'Silakan klik tombol roda gigi (Settings) atau tentukan Web App URL Apps Script terlebih dahulu.', 'warning');
+        return;
       }
 
-      // Verifikasi login admin
-      if ((user === 'admin' || user === 'ranger') && (pass === '123456' || pass === 'admin123')) {
-        sessionStorage.setItem('MTN_IS_ADMIN', 'true');
-        closeModal('loginModal');
-        checkAdminStatus();
-        Swal.fire('Login Berhasil', 'Anda masuk sebagai Pengelola / Admin.', 'success');
-      } else {
-        Swal.fire('Akses Ditolak', 'Username atau Password Admin salah.', 'error');
+      Swal.fire({ 
+        title: 'Memeriksa Akses...', 
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading() 
+      });
+
+      try {
+        const response = await fetch(gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ 
+            action: 'login', 
+            payload: { username: user, pin: pass } 
+          })
+        });
+        
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          sessionStorage.setItem('MTN_IS_ADMIN', 'true');
+          closeModal('loginModal');
+          checkAdminStatus();
+          Swal.fire('Login Berhasil', result.message || 'Anda masuk sebagai Pengelola / Admin.', 'success');
+        } else {
+          Swal.fire('Akses Ditolak', result.message || 'Username atau Password Admin salah.', 'error');
+        }
+      } catch (err) {
+        console.error('Login Fetch Error:', err);
+        Swal.fire('Gagal Terhubung', 'Tidak dapat menghubungkan ke Google Apps Script backend. Pastikan URL Web App valid & telah dipublikasikan sebagai "Anyone".', 'error');
       }
     }
 
@@ -500,7 +451,6 @@ function responseJSON(obj) {
       Swal.fire('Logout', 'Sesi admin telah diakhiri.', 'info');
     }
 
-    // --- INISIALISASI PETA & APLIKASI ---
     function initMap() {
       const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -755,31 +705,35 @@ function responseJSON(obj) {
       const gasUrl = localStorage.getItem('MTN_GAS_URL');
       if (!gasUrl) {
         closeModal('syncModal');
-        if (sessionStorage.getItem('MTN_IS_ADMIN') === 'true') {
-          openModal('settingsModal');
-        }
-        Swal.fire('URL Belum Diset', 'Tanyakan Web App Apps Script URL ke Admin / Pengelola.', 'warning');
+        openModal('settingsModal');
+        Swal.fire('URL Belum Diset', 'Tentukan Web App Apps Script URL terlebih dahulu.', 'warning');
         return;
       }
 
       const payload = {
         action: 'syncTrek',
-        deviceId: localStorage.getItem('MTN_DEVICE_ID') || 'Pendaki-Guest',
-        distance: totalDistanceKM.toFixed(2),
-        points: trackPoints
+        payload: {
+          deviceId: localStorage.getItem('MTN_DEVICE_ID') || 'Pendaki-Guest',
+          distance: totalDistanceKM.toFixed(2),
+          points: trackPoints
+        }
       };
 
       try {
-        Swal.fire({ title: 'Menghubungkan Ke Cloud...', didOpen: () => Swal.showLoading() });
+        Swal.fire({ title: 'Menghubungkan Ke Cloud...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         const res = await fetch(gasUrl, {
           method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         });
 
+        const data = await res.json();
         closeModal('syncModal');
-        Swal.fire('Sinkronisasi Dikirim', 'Data log trek dikirim ke Google Sheets Backend!', 'success');
+        if (data.status === 'success') {
+          Swal.fire('Sinkronisasi Berhasil', data.message || 'Data log trek disimpan ke Google Sheets!', 'success');
+        } else {
+          Swal.fire('Gagal Sync', data.message, 'error');
+        }
       } catch (err) {
         Swal.fire('Gagal Sync', err.message, 'error');
       }
@@ -798,8 +752,8 @@ function responseJSON(obj) {
     }
 
     function saveSettings() {
-      const url = document.getElementById('gasApiUrl').value;
-      const device = document.getElementById('deviceId').value;
+      const url = document.getElementById('gasApiUrl').value.trim();
+      const device = document.getElementById('deviceId').value.trim();
       localStorage.setItem('MTN_GAS_URL', url);
       localStorage.setItem('MTN_DEVICE_ID', device);
       closeModal('settingsModal');
@@ -828,15 +782,12 @@ function responseJSON(obj) {
       }
     }
 
-    // --- FUNGSI PERBAIKAN SERVICE WORKER ---
     function registerServiceWorker() {
-      // 1. Lewati jika aplikasi dipanggil di konteks Blob (misal iframe sandbox / preview)
       if (window.location.protocol === 'blob:' || window.location.href.startsWith('blob:')) {
         console.warn('Service Worker diabaikan karena berada di konteks Blob URL.');
         return;
       }
 
-      // 2. Registrasi SW secara aman dengan Absolute URL berbasis domain
       if ('serviceWorker' in navigator) {
         const swUrl = new URL('sw.js', window.location.origin + window.location.pathname).href;
         const scopeUrl = window.location.origin + window.location.pathname;
