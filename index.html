@@ -8,7 +8,7 @@
   <!-- PWA Metadata & Manifest Data URI -->
   <meta name="theme-color" content="#0f766e">
   <meta name="description" content="Aplikasi Navigasi & Perekam Trek Pendakian Gunung Offline-First">
-  <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1vdW50YWluIFRyYWNrZXIgUFdBIiwKICAic2hvcnRfbmFtZSI6ICJNdG5UcmFja2VyIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwZjE3MmEiLAogICJ0aGVtZV9jb2xvciI6ICIjMGY3NjZlIiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9jZG4taWNvbnMtcG5nLmZsYXRpY29uLmNvbS81MTIvMjk3Mi8yOTcyNTMxLnBuZyIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8yOTcyLzI5NzI1MzEucG5nIiwKICAgICAgInNpemVzIjogIjUxMng1MTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9CiAgXQp9">
+  <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIk1vdW50YWluIFRyYWNrZXIgUFdBIiwKICAic2hvcnRfbmFtZSI6ICJNdG5UcmFja2VyIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwZjE3MmEiLAogICJ0aGVtZV9jb2xvciI6ICIjMGY3NjZlIiwKICAic2l6ZXMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9jZG4taWNvbnMtcG5nLmZsYXRpY29uLmNvbS81MTIvMjk3Mi8yOTcyNTMxLnBuZyIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJodHRwczovL2Nkbi1pY29ucy1wbmcuZmxhdGljb24uY29tLzUxMi8yOTcyLzI5NzI1MzEucG5nIiwKICAgICAgInNpemVzIjogIjUxMng1MTIiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9CiAgXQp9">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -65,9 +65,27 @@
       border-radius: 12px !important;
       padding: 8px 12px !important;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+      margin-top: 12px !important;
+      margin-right: 12px !important;
     }
     .leaflet-control-layers-toggle {
       filter: invert(1);
+    }
+    /* Mengatur posisi kontrol Zoom Leaflet agar rapi di kanan bawah */
+    .leaflet-bottom.leaflet-right {
+      bottom: 75px !important;
+      right: 12px !important;
+    }
+    .leaflet-control-zoom {
+      border: 1px solid #334155 !important;
+      border-radius: 12px !important;
+      overflow: hidden;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+    }
+    .leaflet-control-zoom-in, .leaflet-control-zoom-out {
+      background-color: rgba(15, 23, 42, 0.9) !important;
+      color: #10b981 !important;
+      border-bottom: 1px solid #334155 !important;
     }
     .gps-pulse-marker {
       background: #10b981;
@@ -122,9 +140,9 @@
   <main class="relative flex-1 w-full bg-slate-950">
     <div id="map"></div>
 
-    <!-- HUD Dynamic Stats Bar -->
-    <div class="absolute top-3 left-3 right-3 z-[400] flex justify-between items-start pointer-events-none gap-2">
-      <div class="glass-panel p-2.5 rounded-2xl pointer-events-auto text-xs shadow-xl flex-1 max-w-xs grid grid-cols-2 gap-2 text-slate-200">
+    <!-- HUD Dynamic Stats Bar (Atas Kiri) -->
+    <div class="absolute top-3 left-3 z-[400] pointer-events-none">
+      <div class="glass-panel p-2.5 rounded-2xl pointer-events-auto text-xs shadow-xl w-60 grid grid-cols-2 gap-2 text-slate-200">
         <div>
           <span class="text-[10px] text-slate-400 block uppercase font-semibold">Jarak</span>
           <strong id="hudDistance" class="text-emerald-400 text-base font-extrabold tracking-tight">0.00</strong> <span class="text-[10px] text-slate-400">km</span>
@@ -134,18 +152,18 @@
           <strong id="hudSpeed" class="text-cyan-400 text-base font-extrabold tracking-tight">0.0</strong> <span class="text-[10px] text-slate-400">km/h</span>
         </div>
         <div class="col-span-2 pt-1 border-t border-slate-800/80 flex justify-between items-center text-[10px]">
-          <span class="text-slate-400">Elevasi (API): <strong id="hudElevation" class="text-amber-400 font-bold">--</strong> mdpl</span>
+          <span class="text-slate-400">Elevasi: <strong id="hudElevation" class="text-amber-400 font-bold">--</strong> mdpl</span>
           <button onclick="fetchElevationAPI()" class="text-teal-400 hover:text-teal-300 font-medium underline flex items-center gap-1">
             <i class="fa-solid fa-arrows-rotate text-[9px]"></i> Cek API
           </button>
         </div>
       </div>
-
-      <!-- Tombol Re-Center GPS -->
-      <button id="btnReCenter" onclick="reCenterGPS()" class="pointer-events-auto w-12 h-12 glass-panel rounded-2xl text-teal-400 hover:text-emerald-300 active:scale-95 border border-teal-500/40 flex items-center justify-center text-lg shadow-2xl transition-all duration-200 group" title="Re-Center Ke Lokasi Saya">
-        <i class="fa-solid fa-crosshairs group-hover:rotate-45 transition-transform duration-300"></i>
-      </button>
     </div>
+
+    <!-- Tombol Re-Center GPS (Dipindah ke Kanan Bawah di atas tombol Zoom) -->
+    <button id="btnReCenter" onclick="reCenterGPS()" class="absolute bottom-40 right-3 z-[400] pointer-events-auto w-11 h-11 glass-panel rounded-2xl text-teal-400 hover:text-emerald-300 active:scale-95 border border-teal-500/40 flex items-center justify-center text-lg shadow-2xl transition-all duration-200 group" title="Re-Center Ke Lokasi Saya">
+      <i class="fa-solid fa-crosshairs group-hover:rotate-45 transition-transform duration-300"></i>
+    </button>
 
     <!-- Bottom Tracking Controls -->
     <div class="absolute bottom-5 left-1/2 -translate-x-1/2 z-[400] glass-panel px-4 py-2.5 rounded-2xl border border-slate-700/80 shadow-2xl flex items-center gap-3">
@@ -227,7 +245,7 @@
       <div class="space-y-3 text-xs">
         <div>
           <label class="block text-slate-400 mb-1 font-medium">Google Apps Script Web App URL</label>
-          <input type="url" id="gasApiUrl" placeholder="https://script.google.com/macros/s/AKfycbzhtJt7brW3XzcpsexkXxJTbZZCvGa6DMoTmRp7f9OJaXb6B70KUdiCtmp7xQlbKuPLWw/exec" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:border-teal-500 focus:outline-none">
+          <input type="url" id="gasApiUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:border-teal-500 focus:outline-none">
           <p class="text-[10px] text-slate-500 mt-1">Digunakan untuk verifikasi akun & sinkronisasi data ke Google Sheets.</p>
         </div>
 
@@ -366,7 +384,6 @@
   </div>
 
   <script>
-    // --- MASUKKAN URL GOOGLE APPS SCRIPT ANDA DI SINI UNTUK PENYIMPANAN OTOMATIS ---
     const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzhtJt7brW3XzcpsexkXxJTbZZCvGa6DMoTmRp7f9OJaXb6B70KUdiCtmp7xQlbKuPLWw/exec';
 
     let map, userMarker, trackPolyline;
@@ -380,7 +397,6 @@
 
     const defaultCenter = [-7.768, 112.583];
 
-    // Teks Kode Backend GAS untuk ditampilkan di Modal
     const CODE_GS_CONTENT = `/**
  * MOUNTAIN TRACKER - BACKEND ENGINE (Google Apps Script)
  */
@@ -554,7 +570,6 @@ function handleAddWaypoint(payload) {
 }`;
 
     window.onload = function() {
-      // 1. Tangkap parameter dari URL (opsional: ?gasUrl=...)
       const urlParams = new URLSearchParams(window.location.search);
       const gasUrlParam = urlParams.get('gasUrl');
       if (gasUrlParam) {
@@ -566,7 +581,6 @@ function handleAddWaypoint(payload) {
       checkAdminStatus();
       registerServiceWorker();
       
-      // Load teks kode Code.gs ke textarea modal
       document.getElementById('codeGsArea').value = CODE_GS_CONTENT;
     };
 
