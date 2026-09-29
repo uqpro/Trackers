@@ -828,14 +828,22 @@ function responseJSON(obj) {
       }
     }
 
+    // --- FUNGSI PERBAIKAN SERVICE WORKER ---
     function registerServiceWorker() {
+      // 1. Lewati jika aplikasi dipanggil di konteks Blob (misal iframe sandbox / preview)
+      if (window.location.protocol === 'blob:' || window.location.href.startsWith('blob:')) {
+        console.warn('Service Worker diabaikan karena berada di konteks Blob URL.');
+        return;
+      }
+
+      // 2. Registrasi SW secara aman dengan Absolute URL berbasis domain
       if ('serviceWorker' in navigator) {
-        const swCode = `
-          self.addEventListener('install', e => self.skipWaiting());
-          self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
-        `;
-        const blob = new Blob([swCode], { type: 'application/javascript' });
-        navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log('SW Load:', err));
+        const swUrl = new URL('sw.js', window.location.origin + window.location.pathname).href;
+        const scopeUrl = window.location.origin + window.location.pathname;
+
+        navigator.serviceWorker.register(swUrl, { scope: scopeUrl })
+          .then(reg => console.log('SW Registered successfully:', reg.scope))
+          .catch(err => console.warn('SW Registration Error:', err));
       }
     }
   </script>
