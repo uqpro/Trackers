@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mountain Tracker - PWA Navigasi & Trekking</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f766e">
+  
+  <!-- Tailwind CSS & Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    #map { height: calc(100vh - 70px); width: 100%; }
+    .glass-panel { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans flex flex-col h-screen overflow-hidden">
+
+  <!-- Header Navbar -->
+  <header class="bg-teal-900 px-4 py-3 flex justify-between items-center shadow-lg border-b border-teal-700 z-10">
+    <div class="flex items-center gap-2">
+      <i class="fa-solid fa-mountain text-emerald-400 text-xl"></i>
+      <h1 class="font-bold text-lg tracking-wide text-emerald-100">Mountain Tracker</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="gpsStatus" class="text-xs bg-red-900 text-red-200 px-2 py-1 rounded-full flex items-center gap-1">
+        <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> Off
+      </span>
+      <button onclick="toggleSettingsModal()" class="text-slate-300 hover:text-white">
+        <i class="fa-solid fa-gear text-lg"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Peta Utama -->
+  <main class="relative flex-1">
+    <div id="map"></div>
+
+    <!-- HUD Control Overlay -->
+    <div class="absolute top-4 left-4 right-4 z-[400] flex justify-between items-center pointer-events-none">
+      <div class="glass-panel p-3 rounded-xl border border-slate-700 pointer-events-auto text-xs shadow-lg space-y-1">
+        <div><span class="text-slate-400">Jarak:</span> <strong id="hudDistance" class="text-emerald-400 text-sm">0.00</strong> km</div>
+        <div><span class="text-slate-400">Elevasi (API):</span> <strong id="hudElevation" class="text-cyan-400 text-sm">--</strong> m dpl</div>
+      </div>
+      
+      <button onclick="getCurrentElevation()" class="pointer-events-auto bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs px-3 py-2 rounded-xl flex items-center gap-2 shadow-lg">
+        <i class="fa-solid fa-chart-area text-teal-400"></i> Cek Kontur API
+      </button>
+    </div>
+
+    <!-- Tracking Actions Panel -->
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-[400] glass-panel px-6 py-3 rounded-full border border-slate-700 shadow-2xl flex items-center gap-4">
+      <button id="btnStart" onclick="startTracking()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-5 py-2.5 rounded-full flex items-center gap-2 text-sm shadow-md transition">
+        <i class="fa-solid fa-play"></i> Start
+      </button>
+      <button id="btnStop" onclick="stopTracking()" class="bg-rose-600 hover:bg-rose-500 text-white font-semibold px-5 py-2.5 rounded-full flex items-center gap-2 text-sm shadow-md transition hidden">
+        <i class="fa-solid fa-square"></i> Stop
+      </button>
+      <button onclick="openImageOverlayModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-full text-xs flex items-center gap-1">
+        <i class="fa-solid fa-image"></i> Overlay Peta
+      </button>
+    </div>
+  </main>
+
+  <!-- Navigation Bar Bottom -->
+  <nav class="bg-slate-950 border-t border-slate-800 flex justify-around py-2 z-10 text-xs">
+    <button onclick="switchTab('map')" class="flex flex-col items-center text-teal-400">
+      <i class="fa-solid fa-map-location-dot text-base mb-1"></i> Peta
+    </button>
+    <button onclick="openSyncModal()" class="flex flex-col items-center text-slate-400 hover:text-slate-200">
+      <i class="fa-solid fa-cloud-arrow-up text-base mb-1"></i> Sync Sheets
+    </button>
+    <button onclick="openWaypointModal()" class="flex flex-col items-center text-slate-400 hover:text-slate-200">
+      <i class="fa-solid fa-location-dot text-base mb-1"></i> Pos & Waypoint
+    </button>
+  </nav>
+
+  <!-- Modal Configuration GAS -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-[500] bg-black/70 flex items-center justify-center p-4">
+    <div class="bg-slate-800 rounded-2xl p-5 w-full max-w-md border border-slate-700 space-y-4">
+      <h2 class="text-lg font-bold text-teal-400 flex items-center gap-2"><i class="fa-solid fa-sliders"></i> Pengaturan Backend API</h2>
+      <div>
+        <label class="text-xs text-slate-400 block mb-1">URL Web App Google Apps Script</label>
+        <input type="url" id="gasApiUrl" placeholder="https://script.google.com/macros/s/AKfycbwFvhlO2xHUdRqWld3_iz6dsRVWNFmIsWkzm_2QmNNWYJv-pCRaYAI_LnmAILMq_a36Pg/exec" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 focus:outline-none focus:border-teal-500">
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="toggleSettingsModal()" class="px-4 py-2 bg-slate-700 rounded-lg text-xs">Batal</button>
+        <button onclick="saveApiUrl()" class="px-4 py-2 bg-teal-600 hover:bg-teal-500 rounded-lg text-xs font-semibold">Simpan URL</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+
+    // Inisialisasi Peta Leaflet & Layer Topografi (OpenTopoMap)
+    let map = L.map('map').setView([-7.768, 112.583], 13);
+    
+    // Base Tile Layer (OpenStreetMap & OpenTopoMap)
+    let osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    let topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: 'Map data: © OpenTopoMap'
+    });
+
+    L.control.layers({ "Standard OSM": osmLayer, "Topografi Kontur": topoLayer }).addTo(map);
+
+    // Global Tracking Variables
+    let watchId = null;
+    let trackPoints = [];
+    let trackPolyline = L.polyline([], { color: '#10b981', weight: 5 }).addTo(map);
+    let userMarker = null;
+
+    // Start GPS Tracking
+    function startTracking() {
+      if (!navigator.geolocation) {
+        Swal.fire('Error', 'Geolokasi tidak didukung browser ini.', 'error');
+        return;
+      }
+      document.getElementById('btnStart').classList.add('hidden');
+      document.getElementById('btnStop').classList.remove('hidden');
+      document.getElementById('gpsStatus').className = "text-xs bg-emerald-900 text-emerald-200 px-2 py-1 rounded-full flex items-center gap-1";
+      document.getElementById('gpsStatus').innerHTML = `<i class="fa-solid fa-circle text-[8px] animate-pulse"></i> Tracking`;
+
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const latLng = [lat, lng];
+
+          trackPoints.push(latLng);
+          trackPolyline.setLatLngs(trackPoints);
+
+          if (!userMarker) {
+            userMarker = L.marker(latLng).addTo(map);
+          } else {
+            userMarker.setLatLng(latLng);
+          }
+          map.panTo(latLng);
+
+          // Hitung Jarak Rekursif
+          calculateDistance();
+        },
+        (err) => console.error(err),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    function stopTracking() {
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+      document.getElementById('btnStart').classList.remove('hidden');
+      document.getElementById('btnStop').classList.add('hidden');
+      document.getElementById('gpsStatus').className = "text-xs bg-red-900 text-red-200 px-2 py-1 rounded-full flex items-center gap-1";
+      document.getElementById('gpsStatus').innerHTML = `<i class="fa-solid fa-circle text-[8px]"></i> Off`;
+      Swal.fire('Selesai', 'Rekaman lintasan trek berhasil disimpan lokal.', 'success');
+    }
+
+    // Hitung Jarak Kompleks
+    function calculateDistance() {
+      let totalDist = 0;
+      for (let i = 0; i < trackPoints.length - 1; i++) {
+        const p1 = L.latLng(trackPoints[i]);
+        const p2 = L.latLng(trackPoints[i+1]);
+        totalDist += p1.distanceTo(p2);
+      }
+      document.getElementById('hudDistance').innerText = (totalDist / 1000).toFixed(2);
+    }
+
+    // API Kontur/Topografi Gratis (Open-Meteo Elevation API)
+    async function getCurrentElevation() {
+      const center = map.getCenter();
+      try {
+        const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${center.lat}&longitude=${center.lng}`);
+        const data = await res.json();
+        if (data.elevation) {
+          document.getElementById('hudElevation').innerText = data.elevation[0];
+          Swal.fire('Topografi API', `Ketinggian Titik Tengah Peta: ${data.elevation[0]} mdpl`, 'info');
+        }
+      } catch (e) {
+        Swal.fire('Error', 'Gagal memanggil API Topografi gratis.', 'error');
+      }
+    }
+
+    function toggleSettingsModal() {
+      document.getElementById('settingsModal').classList.toggle('hidden');
+    }
+
+    function saveApiUrl() {
+      const url = document.getElementById('gasApiUrl').value;
+      localStorage.setItem('MTN_GAS_URL', url);
+      toggleSettingsModal();
+      Swal.fire('Tersimpan', 'URL Google Apps Script berhasil disimpan.', 'success');
+    }
+  </script>
+</body>
+</html>
