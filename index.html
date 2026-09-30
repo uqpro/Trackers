@@ -71,7 +71,6 @@
     .leaflet-control-layers-toggle {
       filter: invert(1);
     }
-    /* Mengatur posisi kontrol Zoom Leaflet agar rapi di kanan bawah */
     .leaflet-bottom.leaflet-right {
       bottom: 75px !important;
       right: 12px !important;
@@ -112,7 +111,7 @@
         <h1 class="font-bold text-base tracking-wide text-emerald-400 flex items-center gap-1.5">
           Mountain Tracker <span class="text-[10px] bg-teal-900/80 text-teal-300 border border-teal-700/50 px-1.5 py-0.5 rounded">PWA</span>
         </h1>
-        <p class="text-[10px] text-slate-400">GPS Track & Contour Map</p>
+        <p class="text-[10px] text-slate-400">GPS Track & GPX Offline Navigation</p>
       </div>
     </div>
 
@@ -144,7 +143,7 @@
     <div class="absolute top-3 left-3 z-[400] pointer-events-none">
       <div class="glass-panel p-2.5 rounded-2xl pointer-events-auto text-xs shadow-xl w-60 grid grid-cols-2 gap-2 text-slate-200">
         <div>
-          <span class="text-[10px] text-slate-400 block uppercase font-semibold">Jarak</span>
+          <span class="text-[10px] text-slate-400 block uppercase font-semibold">Jarak Rekam</span>
           <strong id="hudDistance" class="text-emerald-400 text-base font-extrabold tracking-tight">0.00</strong> <span class="text-[10px] text-slate-400">km</span>
         </div>
         <div>
@@ -160,28 +159,37 @@
       </div>
     </div>
 
-    <!-- Tombol Re-Center GPS (Dipindah ke Kanan Bawah di atas tombol Zoom) -->
+    <!-- Tombol Re-Center GPS -->
     <button id="btnReCenter" onclick="reCenterGPS()" class="absolute bottom-40 right-3 z-[400] pointer-events-auto w-11 h-11 glass-panel rounded-2xl text-teal-400 hover:text-emerald-300 active:scale-95 border border-teal-500/40 flex items-center justify-center text-lg shadow-2xl transition-all duration-200 group" title="Re-Center Ke Lokasi Saya">
       <i class="fa-solid fa-crosshairs group-hover:rotate-45 transition-transform duration-300"></i>
     </button>
 
     <!-- Bottom Tracking Controls -->
-    <div class="absolute bottom-5 left-1/2 -translate-x-1/2 z-[400] glass-panel px-4 py-2.5 rounded-2xl border border-slate-700/80 shadow-2xl flex items-center gap-3">
-      <button id="btnStart" onclick="startTracking()" class="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl flex items-center gap-2 text-xs shadow-lg shadow-emerald-900/40 transition">
+    <div class="absolute bottom-5 left-1/2 -translate-x-1/2 z-[400] glass-panel px-4 py-2.5 rounded-2xl border border-slate-700/80 shadow-2xl flex items-center gap-2 overflow-x-auto max-w-[95vw]">
+      <button id="btnStart" onclick="startTracking()" class="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 text-xs shadow-lg shadow-emerald-900/40 transition whitespace-nowrap">
         <i class="fa-solid fa-play"></i> Start
       </button>
 
-      <button id="btnPause" onclick="pauseTracking()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 text-xs shadow-lg hidden transition">
+      <button id="btnPause" onclick="pauseTracking()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 text-xs shadow-lg hidden transition whitespace-nowrap">
         <i class="fa-solid fa-pause"></i> Pause
       </button>
 
-      <button id="btnStop" onclick="stopTracking()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 text-xs shadow-lg hidden transition">
+      <button id="btnStop" onclick="stopTracking()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 text-xs shadow-lg hidden transition whitespace-nowrap">
         <i class="fa-solid fa-stop"></i> Stop
       </button>
 
-      <div class="h-6 w-px bg-slate-700 my-auto"></div>
+      <div class="h-6 w-px bg-slate-700 my-auto shrink-0"></div>
 
-      <button onclick="openModal('overlayModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 border border-slate-700">
+      <!-- Tombol GPX Export & Import -->
+      <button onclick="exportTrackToGPX()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 border border-slate-700 whitespace-nowrap" title="Ekspor Rekaman ke File GPX">
+        <i class="fa-solid fa-file-export text-emerald-400"></i> Ekspor GPX
+      </button>
+
+      <button onclick="openModal('gpxModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 border border-slate-700 whitespace-nowrap" title="Load File GPX Offline">
+        <i class="fa-solid fa-route text-amber-400"></i> Load GPX
+      </button>
+
+      <button onclick="openModal('overlayModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 border border-slate-700 whitespace-nowrap">
         <i class="fa-solid fa-map text-teal-400"></i> Peta Gambar
       </button>
     </div>
@@ -201,6 +209,41 @@
       <i class="fa-solid fa-code text-base text-violet-400"></i> Backend Code.gs
     </button>
   </nav>
+
+  <!-- MODAL LOAD & KELOLA GPX OFFLINE -->
+  <div id="gpxModal" class="hidden fixed inset-0 z-[500] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-2xl border border-slate-700 p-5 w-full max-w-md shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-slate-100 text-sm flex items-center gap-2">
+          <i class="fa-solid fa-route text-amber-400"></i> Kelola Trek GPX Offline
+        </h3>
+        <button onclick="closeModal('gpxModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1 font-medium">Pilih File GPX (.gpx)</label>
+          <input type="file" id="gpxFileInput" accept=".gpx" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-slate-300 text-xs">
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] space-y-1">
+          <div class="flex justify-between"><span class="text-slate-400">Status GPX Offline:</span> <strong id="gpxStatusText" class="text-rose-400">Belum Ada GPX</strong></div>
+          <div class="flex justify-between"><span class="text-slate-400">Total Titik GPX:</span> <strong id="gpxPointsCount" class="text-amber-400">0 titik</strong></div>
+        </div>
+
+        <p class="text-[10px] text-slate-500 italic">*File GPX yang di-load akan disimpan secara permanen di browser lokal sehingga tetap dapat diakses walaupun tidak ada koneksi internet sama sekali.</p>
+      </div>
+
+      <div class="flex flex-col gap-2 pt-2 border-t border-slate-800">
+        <button onclick="loadGPXFile()" class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 rounded-xl text-xs font-bold text-white shadow-md flex items-center justify-center gap-2">
+          <i class="fa-solid fa-file-import"></i> Load GPX Ke Peta
+        </button>
+        <button onclick="clearLoadedGPX()" class="w-full py-2 bg-rose-900/60 border border-rose-700/50 hover:bg-rose-800 text-rose-200 rounded-xl text-xs font-medium">
+          Hapus GPX dari Peta
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL LOGIN ADMIN -->
   <div id="loginModal" class="hidden fixed inset-0 z-[500] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -386,7 +429,7 @@
   <script>
     const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzhtJt7brW3XzcpsexkXxJTbZZCvGa6DMoTmRp7f9OJaXb6B70KUdiCtmp7xQlbKuPLWw/exec';
 
-    let map, userMarker, trackPolyline;
+    let map, userMarker, trackPolyline, gpxPolyline;
     let watchId = null;
     let currentLatLng = null;
     let trackPoints = [];
@@ -396,178 +439,6 @@
     let imageOverlayObj = null;
 
     const defaultCenter = [-7.768, 112.583];
-
-    const CODE_GS_CONTENT = `/**
- * MOUNTAIN TRACKER - BACKEND ENGINE (Google Apps Script)
- */
-
-function doGet(e) {
-  return ContentService.createTextOutput(
-    JSON.stringify({ status: "success", message: "Mountain Tracker API is active." })
-  ).setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  const lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(10000);
-    const contents = JSON.parse(e.postData.contents);
-    const action = contents.action;
-    let result = { status: "error", message: "Aksi tidak dikenal" };
-
-    if (action === "setupDatabase") {
-      result = setupDatabase();
-    } else if (action === "login") {
-      result = handleLogin(contents.payload);
-    } else if (action === "syncTrek") {
-      result = handleSyncTrek(contents.payload);
-    } else if (action === "getWaypoints") {
-      result = handleGetWaypoints(contents.payload);
-    } else if (action === "addWaypoint") {
-      result = handleAddWaypoint(contents.payload);
-    }
-
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(
-      JSON.stringify({ status: "error", message: err.toString() })
-    ).setMimeType(ContentService.MimeType.JSON);
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function setupDatabase() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  let sheetUsers = ss.getSheetByName("Users");
-  if (!sheetUsers) {
-    sheetUsers = ss.insertSheet("Users");
-    sheetUsers.appendRow(["User_ID", "Username", "Password_PIN", "Nama_Lengkap", "Kontak_Darurat", "Created_At"]);
-    sheetUsers.getRange("A1:F1").setFontWeight("bold").setBackground("#0f766e").setFontColor("#ffffff");
-  }
-
-  let sheetTrek = ss.getSheetByName("Trek_Logs");
-  if (!sheetTrek) {
-    sheetTrek = ss.insertSheet("Trek_Logs");
-    sheetTrek.appendRow(["Trek_ID", "User_ID", "Nama_Gunung", "Waktu_Mulai", "Waktu_Selesai", "Jarak_KM", "Elevasi_Max", "Koordinat_JSON", "Created_At"]);
-    sheetTrek.getRange("A1:I1").setFontWeight("bold").setBackground("#0f766e").setFontColor("#ffffff");
-  }
-
-  let sheetWaypoints = ss.getSheetByName("Waypoints");
-  if (!sheetWaypoints) {
-    sheetWaypoints = ss.insertSheet("Waypoints");
-    sheetWaypoints.appendRow(["Point_ID", "Nama_Gunung", "Nama_Pos", "Tipe", "Latitude", "Longitude", "Ketinggian_MDPL", "Keterangan"]);
-    sheetWaypoints.getRange("A1:H1").setFontWeight("bold").setBackground("#0f766e").setFontColor("#ffffff");
-  }
-
-  return { status: "success", message: "Database berhasil disiapkan!" };
-}
-
-function handleLogin(payload) {
-  const scriptProperties = PropertiesService.getScriptProperties();
-  const envAdminUser = scriptProperties.getProperty('ADMIN_USERNAME');
-  const envAdminPass = scriptProperties.getProperty('ADMIN_PASSWORD');
-
-  if (!payload || !payload.username || !payload.pin) {
-    return { status: "error", message: "Username dan Password harus diisi!" };
-  }
-
-  if (envAdminUser && envAdminPass && payload.username === envAdminUser && String(payload.pin) === String(envAdminPass)) {
-    return {
-      status: "success",
-      isAdmin: true,
-      message: "Login Admin Berhasil (Script Properties)!",
-      user: { userId: "ADM-001", username: envAdminUser, name: "Administrator" }
-    };
-  }
-
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Users");
-  if (sheet) {
-    const data = sheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][1]) === String(payload.username) && String(data[i][2]) === String(payload.pin)) {
-        return {
-          status: "success",
-          isAdmin: (data[i][1] === 'admin'),
-          message: "Login Berhasil (Database Sheet)!",
-          user: { userId: data[i][0], username: data[i][1], name: data[i][3], contact: data[i][4] }
-        };
-      }
-    }
-  }
-
-  return { status: "error", message: "Username atau Password Admin tidak cocok!" };
-}
-
-function handleSyncTrek(payload) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName("Trek_Logs");
-  if (!sheet) {
-    setupDatabase();
-    sheet = ss.getSheetByName("Trek_Logs");
-  }
-
-  const trekId = "TRK-" + new Date().getTime();
-  sheet.appendRow([
-    trekId,
-    payload.deviceId || payload.userId || "GUEST",
-    payload.namaGunung || "Jalur Umum",
-    payload.waktuMulai || new Date(),
-    payload.waktuSelesai || new Date(),
-    payload.distance || payload.jarakKM || 0,
-    payload.elevasiMax || 0,
-    JSON.stringify(payload.points || payload.koordinat || []),
-    new Date()
-  ]);
-  return { status: "success", message: "Data Trek berhasil tersinkronisasi!", trekId: trekId };
-}
-
-function handleGetWaypoints(payload) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Waypoints");
-  if (!sheet) return { status: "success", data: [] };
-
-  const data = sheet.getDataRange().getValues();
-  const list = [];
-  for (let i = 1; i < data.length; i++) {
-    if (!payload || !payload.namaGunung || data[i][1].toLowerCase() === payload.namaGunung.toLowerCase()) {
-      list.push({
-        pointId: data[i][0],
-        namaGunung: data[i][1],
-        namaPos: data[i][2],
-        tipe: data[i][3],
-        lat: data[i][4],
-        lng: data[i][5],
-        elevation: data[i][6],
-        keterangan: data[i][7]
-      });
-    }
-  }
-  return { status: "success", data: list };
-}
-
-function handleAddWaypoint(payload) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName("Waypoints");
-  if (!sheet) {
-    setupDatabase();
-    sheet = ss.getSheetByName("Waypoints");
-  }
-
-  const pointId = "WAY-" + new Date().getTime();
-  sheet.appendRow([
-    pointId,
-    payload.namaGunung || "Umum",
-    payload.namaPos || "Pos",
-    payload.tipe || "Posko",
-    payload.lat,
-    payload.lng,
-    payload.elevation || 0,
-    payload.keterangan || "-"
-  ]);
-  return { status: "success", message: "Waypoint berhasil ditambahkan!" };
-}`;
 
     window.onload = function() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -580,83 +451,11 @@ function handleAddWaypoint(payload) {
       loadStoredSettings();
       checkAdminStatus();
       registerServiceWorker();
-      
-      document.getElementById('codeGsArea').value = CODE_GS_CONTENT;
+      restoreSavedGPX(); // Otomatis load GPX yang tersimpan secara offline
     };
 
     function getGasUrl() {
       return localStorage.getItem('MTN_GAS_URL') || DEFAULT_GAS_URL;
-    }
-
-    async function handleAdminLogin(e) {
-      e.preventDefault();
-      const user = document.getElementById('adminUser').value.trim();
-      const pass = document.getElementById('adminPass').value.trim();
-      const gasUrl = getGasUrl();
-
-      if (!gasUrl || gasUrl.includes('GANTI_DENGAN_DEPLOYMENT_ID_ANDA')) {
-        Swal.fire('URL Web App Belum Diset', 'Silakan klik tombol roda gigi (Settings) atau perbarui konstanta DEFAULT_GAS_URL pada kode.', 'warning');
-        return;
-      }
-
-      Swal.fire({ 
-        title: 'Memeriksa Akses...', 
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading() 
-      });
-
-      try {
-        const response = await fetch(gasUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ 
-            action: 'login', 
-            payload: { username: user, pin: pass } 
-          })
-        });
-        
-        const result = await response.json();
-
-        if (result.status === 'success') {
-          sessionStorage.setItem('MTN_IS_ADMIN', 'true');
-          closeModal('loginModal');
-          checkAdminStatus();
-          Swal.fire('Login Berhasil', result.message || 'Anda masuk sebagai Pengelola / Admin.', 'success');
-        } else {
-          Swal.fire('Akses Ditolak', result.message || 'Username atau Password Admin salah.', 'error');
-        }
-      } catch (err) {
-        console.error('Login Fetch Error:', err);
-        Swal.fire('Gagal Terhubung', 'Tidak dapat menghubungkan ke Google Apps Script backend. Pastikan URL Web App valid & telah dipublikasikan sebagai "Anyone".', 'error');
-      }
-    }
-
-    function checkAdminStatus() {
-      const isAdmin = sessionStorage.getItem('MTN_IS_ADMIN') === 'true';
-      const btnSettings = document.getElementById('btnSettings');
-      const navCodeGs = document.getElementById('navCodeGs');
-      const btnAdminLogin = document.getElementById('btnAdminLogin');
-      const btnAdminLogout = document.getElementById('btnAdminLogout');
-
-      if (isAdmin) {
-        btnSettings.classList.remove('hidden');
-        navCodeGs.classList.remove('hidden');
-        btnAdminLogin.classList.add('hidden');
-        btnAdminLogout.classList.remove('hidden');
-      } else {
-        btnSettings.classList.add('hidden');
-        navCodeGs.classList.add('hidden');
-        btnAdminLogin.classList.remove('hidden');
-        btnAdminLogout.classList.add('hidden');
-      }
-    }
-
-    function adminLogout() {
-      sessionStorage.removeItem('MTN_IS_ADMIN');
-      checkAdminStatus();
-      closeModal('settingsModal');
-      closeModal('codeGsModal');
-      Swal.fire('Logout', 'Sesi admin telah diakhiri.', 'info');
     }
 
     function initMap() {
@@ -685,10 +484,159 @@ function handleAddWaypoint(payload) {
       };
       L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
 
+      // Polyline rekam GPS aktif
       trackPolyline = L.polyline([], { color: '#10b981', weight: 5, opacity: 0.9 }).addTo(map);
+
+      // Polyline file GPX
+      gpxPolyline = L.polyline([], { color: '#f97316', weight: 4, opacity: 0.8, dashArray: '8, 6' }).addTo(map);
 
       fetchInitialPosition();
     }
+
+    /* =========================================================
+     * EXPORT & IMPORT GPX OFFLINE ENGINE
+     * ========================================================= */
+
+    // 1. Ekspor Rekaman Trek ke File GPX
+    function exportTrackToGPX() {
+      if (!trackPoints || trackPoints.length === 0) {
+        Swal.fire('Tidak Ada Trek', 'Belum ada rekaman lintasan GPS untuk diekspor.', 'warning');
+        return;
+      }
+
+      let gpxXml = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Mountain Tracker PWA" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Trek Pendakian - ${new Date().toLocaleDateString('id-ID')}</name>
+    <time>${new Date().toISOString()}</time>
+  </metadata>
+  <trk>
+    <name>Rekaman GPS Pendakian</name>
+    <trkseg>
+`;
+
+      trackPoints.forEach((pt) => {
+        const lat = Array.isArray(pt) ? pt[0] : pt.lat;
+        const lng = Array.isArray(pt) ? pt[1] : pt.lng;
+        gpxXml += `      <trkpt lat="${lat}" lon="${lng}"></trkpt>\n`;
+      });
+
+      gpxXml += `    </trkseg>
+  </trk>
+</gpx>`;
+
+      const blob = new Blob([gpxXml], { type: 'application/gpx+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `MountainTrack_${new Date().getTime()}.gpx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      Swal.fire('Ekspor GPX Berhasil', 'File GPX tersimpan di penyimpanan lokal HP Anda.', 'success');
+    }
+
+    // 2. Load File GPX dari HP & Tampilkan di Peta Offline
+    function loadGPXFile() {
+      const input = document.getElementById('gpxFileInput');
+      if (!input.files || !input.files[0]) {
+        Swal.fire('Pilih File', 'Silakan pilih file format .gpx terlebih dahulu.', 'warning');
+        return;
+      }
+
+      const file = input.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const gpxText = e.target.result;
+        parseAndRenderGPX(gpxText, true);
+      };
+
+      reader.readAsText(file);
+    }
+
+    // Parse XML GPX & Render ke Leaflet
+    function parseAndRenderGPX(gpxText, saveToStorage = true) {
+      try {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(gpxText, "text/xml");
+        const trkpts = xmlDoc.getElementsByTagName("trkpt");
+        const wpts = xmlDoc.getElementsByTagName("wpt");
+
+        const gpxCoords = [];
+
+        // Parse Track Points
+        for (let i = 0; i < trkpts.length; i++) {
+          const lat = parseFloat(trkpts[i].getAttribute("lat"));
+          const lon = parseFloat(trkpts[i].getAttribute("lon"));
+          if (!isNaN(lat) && !isNaN(lon)) {
+            gpxCoords.push([lat, lon]);
+          }
+        }
+
+        // Jika tidak ada trkpt, coba ambil dari wpt (Waypoints)
+        if (gpxCoords.length === 0) {
+          for (let i = 0; i < wpts.length; i++) {
+            const lat = parseFloat(wpts[i].getAttribute("lat"));
+            const lon = parseFloat(wpts[i].getAttribute("lon"));
+            if (!isNaN(lat) && !isNaN(lon)) {
+              gpxCoords.push([lat, lon]);
+            }
+          }
+        }
+
+        if (gpxCoords.length === 0) {
+          Swal.fire('Format GPX Tidak Valid', 'Tidak ditemukan koordinat trek dalam file GPX ini.', 'error');
+          return;
+        }
+
+        // Tampilkan Jalur GPX di Peta
+        gpxPolyline.setLatLngs(gpxCoords);
+        map.fitBounds(gpxPolyline.getBounds(), { padding: [30, 30] });
+
+        // Simpan ke LocalStorage untuk akses offline persisten
+        if (saveToStorage) {
+          localStorage.setItem('MTN_OFFLINE_GPX_DATA', gpxText);
+        }
+
+        // Update UI Info GPX
+        document.getElementById('gpxStatusText').innerText = "Terpasang";
+        document.getElementById('gpxStatusText').className = "text-emerald-400 font-bold";
+        document.getElementById('gpxPointsCount').innerText = gpxCoords.length + " titik";
+
+        closeModal('gpxModal');
+        Swal.fire('GPX Dimuat!', `Berhasil menampilkan ${gpxCoords.length} titik koordinat lintasan di peta.`, 'success');
+
+      } catch (err) {
+        console.error(err);
+        Swal.fire('Error GPX', 'Gagal memproses struktur file GPX.', 'error');
+      }
+    }
+
+    // Restorasi Otomatis GPX dari LocalStorage saat Offline
+    function restoreSavedGPX() {
+      const savedGpx = localStorage.getItem('MTN_OFFLINE_GPX_DATA');
+      if (savedGpx) {
+        parseAndRenderGPX(savedGpx, false);
+      }
+    }
+
+    // Hapus Tampilan GPX
+    function clearLoadedGPX() {
+      gpxPolyline.setLatLngs([]);
+      localStorage.removeItem('MTN_OFFLINE_GPX_DATA');
+      document.getElementById('gpxStatusText').innerText = "Belum Ada GPX";
+      document.getElementById('gpxStatusText').className = "text-rose-400";
+      document.getElementById('gpxPointsCount').innerText = "0 titik";
+      closeModal('gpxModal');
+      Swal.fire('Dihapus', 'Trek GPX offline telah dihapus dari peta.', 'info');
+    }
+
+    /* =========================================================
+     * REALTIME GPS TRACKING & SYSTEM FUNCTIONS
+     * ========================================================= */
 
     function fetchInitialPosition() {
       if ('geolocation' in navigator) {
@@ -947,6 +895,54 @@ function handleAddWaypoint(payload) {
       }
     }
 
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const user = document.getElementById('adminUser').value.trim();
+      const pass = document.getElementById('adminPass').value.trim();
+      const gasUrl = getGasUrl();
+
+      if (!gasUrl) {
+        Swal.fire('URL Web App Belum Diset', 'Silakan klik tombol roda gigi (Settings).', 'warning');
+        return;
+      }
+
+      Swal.fire({ title: 'Memeriksa Akses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+      try {
+        const response = await fetch(gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'login', payload: { username: user, pin: pass } })
+        });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          sessionStorage.setItem('MTN_IS_ADMIN', 'true');
+          closeModal('loginModal');
+          checkAdminStatus();
+          Swal.fire('Login Berhasil', result.message || 'Anda masuk sebagai Pengelola / Admin.', 'success');
+        } else {
+          Swal.fire('Akses Ditolak', result.message || 'Username atau Password Admin salah.', 'error');
+        }
+      } catch (err) {
+        Swal.fire('Gagal Terhubung', 'Tidak dapat menghubungkan ke backend.', 'error');
+      }
+    }
+
+    function checkAdminStatus() {
+      const isAdmin = sessionStorage.getItem('MTN_IS_ADMIN') === 'true';
+      document.getElementById('btnSettings').classList.toggle('hidden', !isAdmin);
+      document.getElementById('navCodeGs').classList.toggle('hidden', !isAdmin);
+      document.getElementById('btnAdminLogin').classList.toggle('hidden', isAdmin);
+      document.getElementById('btnAdminLogout').classList.toggle('hidden', !isAdmin);
+    }
+
+    function adminLogout() {
+      sessionStorage.removeItem('MTN_IS_ADMIN');
+      checkAdminStatus();
+      Swal.fire('Logout', 'Sesi admin telah diakhiri.', 'info');
+    }
+
     function openModal(id) {
       if (id === 'syncModal') {
         document.getElementById('syncPointCount').innerText = trackPoints.length + ' titik';
@@ -965,17 +961,12 @@ function handleAddWaypoint(payload) {
       localStorage.setItem('MTN_GAS_URL', url);
       localStorage.setItem('MTN_DEVICE_ID', device);
       closeModal('settingsModal');
-      Swal.fire('Tersimpan', 'Setelan Web App Apps Script berhasil diperbarui.', 'success');
+      Swal.fire('Tersimpan', 'Setelan berhasil diperbarui.', 'success');
     }
 
     function loadStoredSettings() {
       const currentGasUrl = getGasUrl();
-      if (currentGasUrl) {
-        document.getElementById('gasApiUrl').value = currentGasUrl;
-        if (!localStorage.getItem('MTN_GAS_URL')) {
-          localStorage.setItem('MTN_GAS_URL', currentGasUrl);
-        }
-      }
+      if (currentGasUrl) document.getElementById('gasApiUrl').value = currentGasUrl;
       if (localStorage.getItem('MTN_DEVICE_ID')) {
         document.getElementById('deviceId').value = localStorage.getItem('MTN_DEVICE_ID');
       }
@@ -985,28 +976,17 @@ function handleAddWaypoint(payload) {
       const textarea = document.getElementById('codeGsArea');
       textarea.select();
       document.execCommand('copy');
-      Swal.fire('Tersalin!', 'Kode Code.gs berhasil disalin ke clipboard.', 'success');
+      Swal.fire('Tersalin!', 'Kode Code.gs berhasil disalin.', 'success');
     }
 
     function switchTab(tab) {
-      if (tab === 'map') {
-        reCenterGPS();
-      }
+      if (tab === 'map') reCenterGPS();
     }
 
     function registerServiceWorker() {
-      if (window.location.protocol === 'blob:' || window.location.href.startsWith('blob:')) {
-        console.warn('Service Worker diabaikan karena berada di konteks Blob URL.');
-        return;
-      }
-
+      if (window.location.protocol === 'blob:' || window.location.href.startsWith('blob:')) return;
       if ('serviceWorker' in navigator) {
-        const swUrl = new URL('sw.js', window.location.origin + window.location.pathname).href;
-        const scopeUrl = window.location.origin + window.location.pathname;
-
-        navigator.serviceWorker.register(swUrl, { scope: scopeUrl })
-          .then(reg => console.log('SW Registered successfully:', reg.scope))
-          .catch(err => console.warn('SW Registration Error:', err));
+        navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW Error:', err));
       }
     }
   </script>
